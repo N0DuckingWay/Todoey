@@ -16,6 +16,8 @@ class ToDoListViewController: UITableViewController {
     
     let defaults = UserDefaults.standard
     
+    let dataFilePath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first?.appendingPathComponent("Items.plist")
+    
     override func viewDidLoad() {
         super.viewDidLoad()
         // Do any additional setup after loading the view.
@@ -24,12 +26,35 @@ class ToDoListViewController: UITableViewController {
 //            itemArray = items
 //        }
         
-        let newItem = Item()
-        newItem.title = "Find Mike"
-        itemArray.append(newItem)
+        loadItems()
+        
+        
+        
+        print(self.dataFilePath)
+    }
+    
+    func loadItems(){
+        if let data = try? Data(contentsOf: dataFilePath!){
+            let decoder = PropertyListDecoder()
+            do {
+                itemArray = try decoder.decode([Item].self, from: data)
+            } catch {
+                print("Error in loading items from \(error)")
+            }
+        }
     }
     
     
+    func saveData(dataArray:[Item]){
+        let encoder = PropertyListEncoder()
+        do {
+            let data = try encoder.encode(dataArray)
+            try data.write(to: self.dataFilePath!)
+        } catch {
+            print("Error encoding item array, \(error)")
+        }
+
+    }
     
 
     //MARK - Tableview Datasource Methods
@@ -49,6 +74,9 @@ class ToDoListViewController: UITableViewController {
         
         
         
+        
+        
+        
         return cell
     }
     
@@ -60,13 +88,18 @@ class ToDoListViewController: UITableViewController {
         
         itemArray[indexPath.row].done = !itemArray[indexPath.row].done //set done property to the opposite of its current value
         
+        self.saveData(dataArray: self.itemArray)
+        
         tableView.reloadData()
         
         tableView.deselectRow(at: indexPath, animated: true)
         
+
+        
     }
     
     //MARK - Add New Items
+    
     
     
     @IBAction func Add(_ sender: UIBarButtonItem) {
@@ -83,7 +116,7 @@ class ToDoListViewController: UITableViewController {
             self.itemArray.append(newItem)
             self.tableView.reloadData()
             
-            self.defaults.set(self.itemArray, forKey: "TodoListArray")
+            self.saveData(dataArray: self.itemArray)
             
             
             
@@ -105,7 +138,7 @@ class ToDoListViewController: UITableViewController {
         let deleteAction = UITableViewRowAction(style: .default, title: "delete") { (action:UITableViewRowAction, indexPathRemove:IndexPath) in
             self.itemArray.remove(at: indexPathRemove.row)
             self.tableView.reloadData()
-            self.defaults.set(self.itemArray, forKey: "TodoListArray")
+            self.saveData(dataArray: self.itemArray)
         }
         
         return [deleteAction] //required format for this function
